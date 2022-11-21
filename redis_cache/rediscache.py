@@ -347,8 +347,7 @@ def cache_it(limit=10000, expire=DEFAULT_EXPIRY, cache=None,
             ## Key will be either a md5 hash or just pickle object,
             ## in the form of `function name`:`key`
             key = cache.get_hash(serializer.dumps([args, kwargs]))
-            cache_key = '{func_name}:{key}'.format(func_name=function.__name__,
-                                                   key=key)
+            cache_key = '{mod}.{fn}:{key}'.format(mod=function.__module__, fn=function.__name__, key=key)
 
             if namespace:
                 cache_key = '{namespace}:{key}'.format(namespace=namespace,
