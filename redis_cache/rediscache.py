@@ -305,13 +305,39 @@ class SimpleCache(object):
             pipe.srem(setname, *[key for key in self.keys() if key[:key.find(':')] == space])
             pipe.execute()
 
+
     def get_hash(self, args):
         if self.hashkeys:
-            key = hashlib.md5(args.encode('utf-8')).hexdigest()
+            key = hashlib.md5(args).hexdigest()
         else:
             key = pickle.dumps(args)
         return key
 
+
+    def function_hash(self, cache, fn):
+        """
+        https://stackoverflow.com/questions/51901676/get-the-lists-of-functions-used-called-within-a-function-in-python
+        :param cache:
+        :param fn:
+        :return:
+        """
+        """
+        import dis
+        def list_func_calls(fn):
+            funcs = []
+            bytecode = dis.Bytecode(fn)
+            instrs = list(reversed([instr for instr in bytecode]))
+            for (ix, instr) in enumerate(instrs):
+                if instr.opname == "CALL_FUNCTION":
+                    load_func_instr = instrs[ix + instr.arg + 1]
+                    funcs.append(load_func_instr.argval)
+    
+            return ["%d. %s" % (ix, funcname) for (ix, funcname) in enumerate(reversed(funcs), 1)]
+        """
+        code = fn.__code__.co_code
+        key = hashlib.md5(code).hexdigest()
+
+        return key
 
 def cache_it(limit=10000, expire=DEFAULT_EXPIRY, cache=None,
              use_json=False, namespace=None):
@@ -346,7 +372,8 @@ def cache_it(limit=10000, expire=DEFAULT_EXPIRY, cache=None,
 
             ## Key will be either a md5 hash or just pickle object,
             ## in the form of `function name`:`key`
-            key = cache.get_hash(serializer.dumps([args, kwargs]))
+
+            key = cache.get_hash(serializer.dumps([cache.function_hash(cache, function), args, kwargs]))
             cache_key = '{mod}.{fn}:{key}'.format(mod=function.__module__, fn=function.__name__, key=key)
 
             if namespace:
